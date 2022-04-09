@@ -48,6 +48,7 @@ void speedTest() {
             }
             clock_t end = clock();
             fprintf(result_fptr, "%d - %lf\n", size, (double) (end - start) / CLOCKS_PER_SEC);
+            printf("%d\n", size);
             free(a);
         }
     }

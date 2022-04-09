@@ -49,16 +49,17 @@ void speedTest() {
     FILE *matrixes_fptr = fopen("read.txt", "r");
     if (result_fptr) {
         while (!feof(matrixes_fptr)) {
-            int i = 0;
-            fscanf(matrixes_fptr, "%d\n", &i);
-            float *a = (float*)malloc(i * i * sizeof(float));
-            for (int k = 0; k < i; k++)
-                for (int l = 0; l < i; l++)
-                    fscanf(matrixes_fptr, "%f ", a + (k * i + l));
+            int size = 0;
+            fscanf(matrixes_fptr, "%d\n", &size);
+            float *a = (float*)malloc(size * size * sizeof(float));
+            for (int k = 0; k < size; k++)
+                for (int l = 0; l < size; l++)
+                    fscanf(matrixes_fptr, "%f ", a + (k * size + l));
             clock_t start = clock();
-            getDeterminant(a, i);
+            getDeterminant(a, size);
             clock_t end = clock();
-            fprintf(result_fptr, "%d - %lf\n", i, (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(result_fptr, "%d - %lf\n", size, (double)(end - start) / CLOCKS_PER_SEC);
+            printf("%d\n", size);
             free(a);
         }
     }
@@ -80,7 +81,7 @@ void fillRead(int max_size) {
 
 int main() {
     srand(time(NULL));
-    fillRead(500);
+    fillRead(1000);
     speedTest();
     return 0;
 }
