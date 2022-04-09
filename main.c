@@ -45,7 +45,7 @@ float getDeterminant(float *matrix, int length) {
 }
 
 void speedTest() {
-    FILE *result_fptr = fopen("time.txt", "a+");
+    FILE *result_fptr = fopen("cpu_time.txt", "w+");
     FILE *matrixes_fptr = fopen("read.txt", "r");
     if (result_fptr) {
         while (!feof(matrixes_fptr)) {
@@ -80,7 +80,7 @@ void fillRead(int max_size) {
 
 int main() {
     srand(time(NULL));
-    fillRead(100);
+    fillRead(500);
     speedTest();
     return 0;
 }

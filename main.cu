@@ -5,66 +5,49 @@
 #include "device_launch_parameters.h"
 #include "host_defines.h"
 
-void printMatrix(float *matrix, int length) {
-    printf("\n");
-    for (int i = 0; i < length; i++) {
-        for (int j = 0; j < length; j++) {
-            printf("%.3f ", matrix[i * length + j]);
-        }
-        printf("\n");
+
+__global__ void sumRows(float *matrix, int i, int length) {
+    int t_id = threadIdx.x;
+    if (t_id > i && t_id <= length - 1) {
+        float factor = -(matrix[length * t_id + i] / matrix[i * length + i]);  //calculating factor
+        for (int j = i; j < length; j++)
+            matrix[length * t_id + j] += matrix[i * length + j] * factor;
     }
-    printf("\n");
 }
 
-__global__ void HelloWorld(){
-    printf("kkew");
-    printf("Hello world, %d, %d\n", blockIdx.x, threadIdx.x);
-    printf("kkew");
-}
-
-void swapRows(float* matrix, int id1, int id2, int length) {
-
-}
-
-__global__ void sumRows(float *arr1, float *arr2, float factor, int length) {
-
-}
-
-float getDeterminant(float *matrix, int length) {
+__global__ void getDeterminant(float *matrix, int length) {
+    __syncthreads();
     for (int i = 0; i < length - 1; i++) {
-        for (int k = i + 1; k < length; k++) {
-            if (matrix[i * length + i] == 0) {  //swapping in case of nulls on diagonal
-                int l = i + 1;
-                for (; matrix[l * length + i] == 0 && l < length; l++) {}
-                //swapRows(matrix + i * length, matrix + l * length, length);
-            }
-            float factor = -(matrix[k * length + i] / matrix[i * length + i]);  //calculating factor
-            for (int j = i; j < length; j++) {
-                matrix[k * length + j] += matrix[i * length + j] * factor;
-            }
-        }
+        sumRows<<<1, length>>>(matrix, i, length);
+        cudaDeviceSynchronize();
     }
-    float det = matrix[0];
-    for (int i = 0; i < length; i++)
-        det *= matrix[i * length + i];
-    return det;
 }
 
 void speedTest() {
-    FILE *result_fptr = fopen("time.txt", "a+");
+    FILE *result_fptr = fopen("gpu_time.txt", "w+");
     FILE *matrixes_fptr = fopen("read.txt", "r");
     if (result_fptr) {
         while (!feof(matrixes_fptr)) {
-            int i = 0;
-            fscanf(matrixes_fptr, "%d\n", &i);
-            float *a = (float*)malloc(i * i * sizeof(float));
-            for (int k = 0; k < i; k++)
-                for (int l = 0; l < i; l++)
-                    fscanf(matrixes_fptr, "%f ", a + (k * i + l));
+            int size = 0;
+            fscanf(matrixes_fptr, "%d\n", &size);
+            float *a = (float *) malloc(size * size * sizeof(float));
+            for (int k = 0; k < size; k++)
+                for (int l = 0; l < size; l++)
+                    fscanf(matrixes_fptr, "%f ", a + (k * size + l));
             clock_t start = clock();
-            getDeterminant(a, i);
+            float *a_d;
+            cudaMalloc(&a_d, size * size * sizeof(float));
+            cudaMemcpy(a_d, a, size * size * sizeof(float), cudaMemcpyHostToDevice);
+            getDeterminant<<<1, 1>>>( a_d, size);
+            cudaThreadSynchronize();
+            cudaMemcpy(a, a_d, size * size * sizeof(float), cudaMemcpyDeviceToHost);
+            cudaFree(a_d);
+            float res = a[0];
+            for (int i = 1; i < size; i++) {
+                res *= a[i * size + i];
+            }
             clock_t end = clock();
-            fprintf(result_fptr, "%d - %lf\n", i, (double)(end - start) / CLOCKS_PER_SEC);
+            fprintf(result_fptr, "%d - %lf\n", size, (double) (end - start) / CLOCKS_PER_SEC);
             free(a);
         }
     }
@@ -73,8 +56,6 @@ void speedTest() {
 }
 
 int main() {
-    //speedTest();
-    printf("kekw\n");
-    HelloWorld<<<1, 1>>>();
+    speedTest();
     return 0;
 }
